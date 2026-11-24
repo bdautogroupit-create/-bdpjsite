@@ -1,0 +1,24 @@
+{% load static %}<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}IT Service Desk{% endblock %}</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="{% static 'servicedesk/app.css' %}">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="{% url 'servicedesk:dashboard' %}">IT Service Desk</a>
+  {% if user.is_authenticated %}
+  <span class="who">{{ user.get_username }}
+    <form method="post" action="{% url 'logout' %}" class="inline">{% csrf_token %}<button type="submit" class="lnk">ออกจากระบบ</button></form>
+  </span>
+  {% endif %}
+</header>
+<main>
+{% if messages %}{% for m in messages %}<div class="msg">{{ m }}</div>{% endfor %}{% endif %}
+{% block content %}{% endblock %}
+</main>
+</body>
+</html>

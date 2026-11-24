@@ -1,0 +1,65 @@
+{% extends "servicedesk/base.html" %}
+{% load thai %}
+{% block content %}
+<h1>สรุปงาน IT Service Desk</h1>
+<p class="sub">{{ period }}</p>
+
+<label class="sel"><span>เลือกสาขา</span>
+  <select onchange="if(this.value)location.href=this.value">
+    {% for o in branch_options %}<option value="{{ o.url }}"{% if o.selected %} selected{% endif %}>{{ o.label }}</option>{% endfor %}
+  </select>
+</label>
+<div class="fbar">
+  {% if chips %}<span>กำลังกรอง:</span>{% for c in chips %}<span class="chip">{{ c }}</span>{% endfor %}
+  <a class="clr" href="{% url 'servicedesk:dashboard' %}">ล้างตัวกรอง</a>
+  {% else %}คลิกที่แท่งกราฟเพื่อกรองข้อมูล เลือกได้หลายรายการ{% endif %}
+</div>
+
+<section class="hero">
+  <div class="bigc"><div class="big">{{ kpi.median|minutes_th }}</div>
+    <div>ค่ากลางเวลาแก้ไขต่องาน จาก {{ kpi.total }} งาน เรียบร้อย {{ kpi.done }} งาน</div></div>
+  <div class="kpis">{% for value, label in kpi_cards %}<div class="kpi"><b>{{ value }}</b><span>{{ label }}</span></div>{% endfor %}</div>
+</section>
+
+<section class="grid2">
+  <div class="panel"><h2>งานแยกตามสาขา</h2>
+    {% for it in branch_bars %}<a class="br{% if it.selected %} on{% endif %}{% if it.dim %} off{% endif %}" href="{{ it.url }}"><span>{{ it.label }}</span><span class="bt"><i style="width:{{ it.pct }}%"></i></span><b>{{ it.count }}</b></a>{% endfor %}
+  </div>
+  <div class="panel"><h2>งานแยกตามหมวดปัญหา</h2>
+    {% for it in cat_bars %}<a class="br{% if it.selected %} on{% endif %}{% if it.dim %} off{% endif %}" href="{{ it.url }}"><span>{{ it.label }}</span><span class="bt"><i style="width:{{ it.pct }}%"></i></span><b>{{ it.count }}</b></a>{% endfor %}
+  </div>
+</section>
+
+<section class="panel"><h2>งานรายสัปดาห์ (นับจากวันจันทร์)</h2>
+  <div class="weeks">{% for w in week_cols %}<a class="col{% if w.selected %} on{% endif %}{% if w.dim %} off{% endif %}" href="{{ w.url }}"><b>{{ w.count }}</b><span class="cb"><i style="height:{{ w.pct }}%"></i></span><span class="cl">{{ w.label }}</span></a>{% endfor %}</div>
+</section>
+
+<section class="panel"><h2>ข้อสังเกต</h2>
+  <ul class="ins">{% for s in insights %}<li>{{ s }}</li>{% empty %}<li>ไม่มีงานตรงกับตัวกรอง กด ล้างตัวกรอง เพื่อดูทั้งหมด</li>{% endfor %}</ul>
+</section>
+
+<section class="panel">
+  <div class="ph"><h2>รายการงาน</h2>
+    {% if perms.servicedesk.add_ticket %}<a class="pri" href="{% url 'servicedesk:ticket_add' %}">เพิ่มงานใหม่</a>{% endif %}</div>
+  <div class="tw"><table>
+    <thead><tr><th>วันที่</th><th>สาขา</th><th>เรื่อง</th><th>หมวด</th><th>เวลาที่ใช้</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
+    <tbody>
+    {% for t in page_obj %}
+    <tr><td>{{ t.date|thai_short }}</td><td>{{ t.branch }}</td><td>{{ t.subject }}</td><td>{{ t.category }}</td>
+      <td>{{ t.duration_minutes|minutes_th }}</td><td>{{ t.status }}</td>
+      <td class="act"><a class="btn" href="{% url 'servicedesk:ticket_detail' t.pk %}">รายละเอียด</a>
+        {% if perms.servicedesk.change_ticket %}<a class="btn" href="{% url 'servicedesk:ticket_edit' t.pk %}">แก้ไข</a>{% endif %}
+        {% if perms.servicedesk.delete_ticket %}<a class="btn dg" href="{% url 'servicedesk:ticket_delete' t.pk %}">ลบ</a>{% endif %}</td></tr>
+    {% empty %}<tr><td colspan="7">ไม่มีงานตรงกับตัวกรอง</td></tr>
+    {% endfor %}
+    </tbody></table></div>
+  <div class="pager">
+    <span>แสดง {{ page_obj.start_index }}-{{ page_obj.end_index }} จาก {{ total }} รายการ (หน้าละ 30 รายการ)</span>
+    <span class="pgb">
+      {% if prev_url %}<a class="btn" href="{{ prev_url }}">ก่อนหน้า</a>{% else %}<span class="btn off">ก่อนหน้า</span>{% endif %}
+      {% for p in pages %}{% if p.gap %}<span class="pgd">…</span>{% else %}<a class="btn{% if p.current %} cur{% endif %}" href="{{ p.url }}">{{ p.n }}</a>{% endif %}{% endfor %}
+      {% if next_url %}<a class="btn" href="{{ next_url }}">ถัดไป</a>{% else %}<span class="btn off">ถัดไป</span>{% endif %}
+    </span>
+  </div>
+</section>
+{% endblock %}

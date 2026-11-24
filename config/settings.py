@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'servicedesk',  # เพิ่ม: แอป IT Service Desk
 ]
 
 MIDDLEWARE = [
@@ -117,9 +118,11 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.1/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+#LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'th'  # แก้: ภาษาไทย
 
-TIME_ZONE = 'UTC'
+#TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Bangkok'  # แก้: เวลาประเทศไทย (วันที่และเวลาของงานจะตรงกับที่กรอก)
 
 USE_I18N = True
 
@@ -131,6 +134,18 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# เพิ่ม: ให้ WhiteNoise บีบอัดไฟล์ static (CSS ของแอป)
+STORAGES = {
+    'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+    'staticfiles': {'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage'},
+}
+
+
+# เพิ่ม: การล็อกอิน (ใช้หน้า login ของ django.contrib.auth.urls ที่ /accounts/login/)
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'servicedesk:dashboard'
+LOGOUT_REDIRECT_URL = 'login'
 
 
 # Email

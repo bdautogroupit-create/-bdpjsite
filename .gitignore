@@ -1,5 +1,6 @@
 .venv/
 .env
+servicedesk/seed/tickets.json
 __pycache__/
 db.sqlite3
 staticfiles/
