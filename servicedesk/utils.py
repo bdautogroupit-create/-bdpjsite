@@ -58,6 +58,9 @@ def fmt_minutes(m):
     if m < 60:
         return f"{m} นาที"
     h, r = divmod(m, 60)
+    if h >= 24:
+        d, h = divmod(h, 24)
+        return f"{d} วัน {h} ชม." if h else f"{d} วัน"
     return f"{h} ชม. {r} นาที" if r else f"{h} ชม."
 
 

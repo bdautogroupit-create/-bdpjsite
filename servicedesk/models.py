@@ -1,4 +1,6 @@
 # ไฟล์นี้ทำอะไร: โครงสร้างตารางในฐานข้อมูล: สาขา (Branch), หมวดปัญหา (Category), งาน (Ticket)
+from datetime import datetime
+
 from django.db import models
 
 
@@ -38,9 +40,10 @@ class Ticket(models.Model):
     category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name="tickets", verbose_name="หมวดปัญหา")
     subject = models.CharField("เรื่อง", max_length=255)
     requester = models.CharField("ผู้ขอ", max_length=100, blank=True)
-    date = models.DateField("วันที่")
-    opened_at = models.TimeField("เวลาเปิด")
-    closed_at = models.TimeField("เวลาเสร็จ", null=True, blank=True)
+    date = models.DateField("วันที่เปิด")
+    opened_at = models.TimeField("เวลาที่เปิด")
+    closed_date = models.DateField("วันที่ปิด", null=True, blank=True)
+    closed_at = models.TimeField("เวลาที่ปิด", null=True, blank=True)
     solution = models.TextField("วิธีแก้ไขปัญหา", blank=True)
     status = models.CharField("สถานะ", max_length=20, choices=Status.choices, default=Status.DONE)
     remark = models.TextField("หมายเหตุ", blank=True)
@@ -57,13 +60,21 @@ class Ticket(models.Model):
         return f"{self.date} {self.branch.code} {self.subject}"
 
     @property
+    def closed_on(self):
+        """วันที่ปิดงาน: ถ้าไม่ได้ระบุ ถือว่าปิดในวันเดียวกับวันที่เปิด"""
+        return self.closed_date or self.date
+
+    @property
     def duration_minutes(self):
-        """Minutes from open to close; None if unknown or the close time is earlier."""
-        if not self.opened_at or not self.closed_at:
+        """นาทีตั้งแต่เปิดถึงปิด (รองรับงานข้ามวัน); None ถ้าไม่ทราบเวลาปิดหรือปิดก่อนเปิด"""
+        if not self.date or not self.opened_at or not self.closed_at:
             return None
-        m = (self.closed_at.hour * 60 + self.closed_at.minute) - (self.opened_at.hour * 60 + self.opened_at.minute)
+        start = datetime.combine(self.date, self.opened_at)
+        end = datetime.combine(self.closed_on, self.closed_at)
+        m = int((end - start).total_seconds() // 60)
         return m if m >= 0 else None
 
     @property
     def carried_over(self):
-        return "อีกวัน" in (self.remark or "")
+        """งานที่แก้ต่อข้ามวัน: ปิดคนละวันกับที่เปิด หรือหมายเหตุระบุว่าแก้อีกวัน"""
+        return "อีกวัน" in (self.remark or "") or (self.closed_date is not None and self.closed_date != self.date)

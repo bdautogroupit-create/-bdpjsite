@@ -5,12 +5,12 @@
 <section class="panel narrow">
   <h2>รายละเอียดงาน</h2>
   <dl>
-    <dt>วันที่</dt><dd>{{ object.date|thai_date }}</dd>
     <dt>สาขา</dt><dd>{{ object.branch }}</dd>
     <dt>เรื่อง</dt><dd>{{ object.subject }}</dd>
     <dt>ผู้ขอ</dt><dd>{{ object.requester|default:"-" }}</dd>
     <dt>หมวดปัญหา</dt><dd>{{ object.category }}</dd>
-    <dt>เวลาเปิด - เสร็จ</dt><dd>{{ object.opened_at|time:"H:i" }} - {% if object.closed_at %}{{ object.closed_at|time:"H:i" }}{% else %}ไม่ระบุ{% endif %}</dd>
+    <dt>เปิดงาน</dt><dd>{{ object.date|thai_date }} เวลา {{ object.opened_at|time:"H:i" }} น.</dd>
+    <dt>ปิดงาน</dt><dd>{% if object.closed_at %}{{ object.closed_on|thai_date }} เวลา {{ object.closed_at|time:"H:i" }} น.{% else %}ยังไม่ระบุ{% endif %}</dd>
     <dt>เวลาที่ใช้</dt><dd>{{ object.duration_minutes|minutes_th }}</dd>
     <dt>วิธีแก้ไขปัญหา</dt><dd>{{ object.solution|default:"-"|linebreaksbr }}</dd>
     <dt>สถานะ</dt><dd>{{ object.status }}</dd>

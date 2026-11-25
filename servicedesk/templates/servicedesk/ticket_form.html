@@ -5,12 +5,25 @@
   <h2>{% if object %}แก้ไขงาน{% else %}เพิ่มงานใหม่{% endif %}</h2>
   <form method="post" class="grid2f">{% csrf_token %}
     {% if form.non_field_errors %}<p class="er w2">{{ form.non_field_errors }}</p>{% endif %}
-    {% for field in form %}
-    <label class="{% if field.name == 'subject' or field.name == 'solution' or field.name == 'remark' %}w2{% endif %}">{{ field.label }}
-      {{ field }}
-      {% for e in field.errors %}<span class="er">{{ e }}</span>{% endfor %}
-    </label>
-    {% endfor %}
+    {% include "servicedesk/_field.html" with field=form.branch %}
+    {% include "servicedesk/_field.html" with field=form.category %}
+    {% include "servicedesk/_field.html" with field=form.subject cls="w2" %}
+    {% include "servicedesk/_field.html" with field=form.requester %}
+    {% include "servicedesk/_field.html" with field=form.status %}
+
+    <fieldset class="timebox w2">
+      <legend>วันที่และเวลา เปิด - ปิดงาน</legend>
+      <div class="timegrid">
+        {% include "servicedesk/_field.html" with field=form.date %}
+        {% include "servicedesk/_field.html" with field=form.opened_at %}
+        {% include "servicedesk/_field.html" with field=form.closed_date %}
+        {% include "servicedesk/_field.html" with field=form.closed_at %}
+      </div>
+      <p class="hint">ถ้ากรอกเวลาที่ปิดแต่ไม่ระบุวันที่ปิด ระบบจะใช้วันเดียวกับวันที่เปิด งานที่ยังไม่เสร็จให้เว้นวันที่ปิดและเวลาที่ปิดไว้</p>
+    </fieldset>
+
+    {% include "servicedesk/_field.html" with field=form.solution cls="w2" %}
+    {% include "servicedesk/_field.html" with field=form.remark cls="w2" %}
     <div class="dact w2">
       <a class="btn" href="{% url 'servicedesk:dashboard' %}">ยกเลิก</a>
       <button class="pri" type="submit">บันทึก</button>

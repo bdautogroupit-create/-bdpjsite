@@ -1,4 +1,6 @@
 # ไฟล์นี้ทำอะไร: ชุดทดสอบอัตโนมัติ รันด้วย: python manage.py test servicedesk
+from datetime import date, time
+
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.test import TestCase
@@ -57,15 +59,23 @@ class ServiceDeskTests(TestCase):
     def test_admin_can_add_edit_delete(self):
         self.client.login(username="admin", password="pw")
         data = {"branch": Branch.objects.get(code="BDPL").pk, "date": "2026-05-21", "subject": "ทดสอบ",
-                "requester": "", "category": Category.objects.first().pk, "opened_at": "10:00",
+                "requester": "", "category": Category.objects.first().pk, "opened_at": "10:00", "closed_date": "",
                 "closed_at": "10:30", "solution": "", "status": "เรียบร้อย", "remark": ""}
         self.client.post(reverse("servicedesk:ticket_add"), data)
         t = Ticket.objects.get(subject="ทดสอบ")
         self.assertEqual(t.duration_minutes, 30)
+        self.assertEqual(t.closed_date, date(2026, 5, 21))  # ไม่ระบุวันที่ปิด = วันเดียวกับวันที่เปิด
         self.client.post(reverse("servicedesk:ticket_edit", args=[t.pk]), {**data, "closed_at": "11:00"})
         t.refresh_from_db()
         self.assertEqual(t.duration_minutes, 60)
         bad = self.client.post(reverse("servicedesk:ticket_edit", args=[t.pk]), {**data, "closed_at": "09:00"})
-        self.assertContains(bad, "เวลาเสร็จต้องไม่ก่อนเวลาเปิด")
+        self.assertContains(bad, "วันที่และเวลาที่ปิดต้องไม่ก่อนวันที่และเวลาที่เปิด")
         self.client.post(reverse("servicedesk:ticket_delete", args=[t.pk]))
         self.assertFalse(Ticket.objects.filter(pk=t.pk).exists())
+
+    def test_cross_day_duration(self):
+        t = Ticket.objects.create(branch=Branch.objects.first(), category=Category.objects.first(),
+                                  subject="ข้ามวัน", date=date(2026, 5, 1), opened_at=time(10, 0),
+                                  closed_date=date(2026, 5, 2), closed_at=time(9, 0))
+        self.assertEqual(t.duration_minutes, 1380)
+        self.assertTrue(t.carried_over)

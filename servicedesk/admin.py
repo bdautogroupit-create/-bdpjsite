@@ -17,7 +17,7 @@ class CategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Ticket)
 class TicketAdmin(admin.ModelAdmin):
-    list_display = ("date", "branch", "subject", "category", "requester", "status")
+    list_display = ("date", "closed_date", "branch", "subject", "category", "requester", "status")
     list_filter = ("branch", "category", "status")
     search_fields = ("subject", "requester", "solution", "remark")
     date_hierarchy = "date"
