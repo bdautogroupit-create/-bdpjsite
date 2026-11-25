@@ -1,0 +1,40 @@
+{% load static %}<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Computer Support{% endblock %}</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="{% static 'core/base.css' %}">
+{% block extra_css %}{% endblock %}
+</head>
+<body>
+<div class="shell{% if not user.is_authenticated %} solo{% endif %}">
+  {% if user.is_authenticated %}
+  <aside class="side">
+    <a class="brand" href="{% url 'core:home' %}">Computer Support</a>
+    <nav class="menu" aria-label="เมนูหลัก">
+      {% for item in menu %}
+        {% if item.children %}
+        <details class="nav-grp"{% if item.active %} open{% endif %}>
+          <summary>{{ item.label }}</summary>
+          {% for c in item.children %}<a class="nav-sub{% if c.active %} on{% endif %}" href="{{ c.url }}">{{ c.label }}</a>{% endfor %}
+        </details>
+        {% else %}
+        <a class="nav-one{% if item.active %} on{% endif %}" href="{{ item.url }}">{{ item.label }}</a>
+        {% endif %}
+      {% endfor %}
+    </nav>
+    <div class="who">
+      <span>{{ user.get_username }}</span>
+      <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit" class="lnk">ออกจากระบบ</button></form>
+    </div>
+  </aside>
+  {% endif %}
+  <main class="content">
+    {% if messages %}{% for m in messages %}<div class="msg">{{ m }}</div>{% endfor %}{% endif %}
+    {% block content %}{% endblock %}
+  </main>
+</div>
+</body>
+</html>

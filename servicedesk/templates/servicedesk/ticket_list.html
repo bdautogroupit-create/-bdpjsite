@@ -1,0 +1,47 @@
+{% extends "core/base.html" %}
+{% load static thai %}
+{% block title %}รายการงาน{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'servicedesk/app.css' %}">{% endblock %}
+{% block content %}
+<h1>รายการงาน</h1>
+<p class="sub">ค้นหา กรอง และจัดการงานแจ้งปัญหาการใช้งานของทุกสาขา</p>
+
+<section class="panel">
+  <div class="ph"><h2>ค้นหา</h2>
+    {% if perms.servicedesk.add_ticket %}<a class="pri" href="{% url 'servicedesk:ticket_add' %}">เพิ่มงานใหม่</a>{% endif %}</div>
+  <form method="get" class="filters">
+    <label>คำค้น (เรื่อง ผู้ขอ วิธีแก้ไข)<input name="q" value="{{ f.q }}" placeholder="เช่น Dealer Pro"></label>
+    <label>สาขา<select name="branch"><option value="">ทุกสาขา</option>
+      {% for b in branches %}<option value="{{ b.code }}"{% if f.branch == b.code %} selected{% endif %}>{{ b }}</option>{% endfor %}</select></label>
+    <label>หมวดปัญหา<select name="category"><option value="">ทุกหมวด</option>
+      {% for c in categories %}<option value="{{ c.name }}"{% if f.category == c.name %} selected{% endif %}>{{ c.name }}</option>{% endfor %}</select></label>
+    <label>สถานะ<select name="status"><option value="">ทุกสถานะ</option>
+      {% for value, label in statuses %}<option value="{{ value }}"{% if f.status == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+    <div class="fbtn"><button class="pri" type="submit">ค้นหา</button>
+      {% if has_filter %}<a class="btn" href="{% url 'servicedesk:ticket_list' %}">ล้าง</a>{% endif %}</div>
+  </form>
+</section>
+
+<section class="panel">
+  <div class="tw"><table>
+    <thead><tr><th>วันที่เปิด</th><th>สาขา</th><th>เรื่อง</th><th>หมวด</th><th>เวลาที่ใช้</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
+    <tbody>
+    {% for t in page_obj %}
+    <tr><td>{{ t.date|thai_short }}</td><td>{{ t.branch }}</td><td>{{ t.subject }}</td><td>{{ t.category }}</td>
+      <td>{{ t.duration_minutes|minutes_th }}</td><td>{{ t.status }}</td>
+      <td class="act"><a class="btn" href="{% url 'servicedesk:ticket_detail' t.pk %}">รายละเอียด</a>
+        {% if perms.servicedesk.change_ticket %}<a class="btn" href="{% url 'servicedesk:ticket_edit' t.pk %}">แก้ไข</a>{% endif %}
+        {% if perms.servicedesk.delete_ticket %}<a class="btn dg" href="{% url 'servicedesk:ticket_delete' t.pk %}">ลบ</a>{% endif %}</td></tr>
+    {% empty %}<tr><td colspan="7">ไม่มีงานตรงกับที่ค้นหา</td></tr>
+    {% endfor %}
+    </tbody></table></div>
+  <div class="pager">
+    <span>แสดง {{ page_obj.start_index }}-{{ page_obj.end_index }} จาก {{ total }} รายการ (หน้าละ 30 รายการ)</span>
+    <span class="pgb">
+      {% if prev_url %}<a class="btn" href="{{ prev_url }}">ก่อนหน้า</a>{% else %}<span class="btn off">ก่อนหน้า</span>{% endif %}
+      {% for p in pages %}{% if p.gap %}<span class="pgd">…</span>{% else %}<a class="btn{% if p.current %} cur{% endif %}" href="{{ p.url }}">{{ p.n }}</a>{% endif %}{% endfor %}
+      {% if next_url %}<a class="btn" href="{{ next_url }}">ถัดไป</a>{% else %}<span class="btn off">ถัดไป</span>{% endif %}
+    </span>
+  </div>
+</section>
+{% endblock %}

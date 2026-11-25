@@ -44,7 +44,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'servicedesk',  # เพิ่ม: แอป IT Service Desk
+    'core',  # เพิ่ม: ระบบกลาง (หน้าแรก เมนู เลย์เอาต์)
+    'servicedesk',  # เพิ่ม: แอป IT Service Desk (แจ้งปัญหาการใช้งาน)
 ]
 
 MIDDLEWARE = [
@@ -70,6 +71,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'core.context_processors.menu',  # เพิ่ม: ส่งเมนูไปทุกหน้า
             ],
         },
     },
@@ -144,7 +146,7 @@ STORAGES = {
 
 # เพิ่ม: การล็อกอิน (ใช้หน้า login ของ django.contrib.auth.urls ที่ /accounts/login/)
 LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = 'servicedesk:dashboard'
+LOGIN_REDIRECT_URL = 'core:home'  # ล็อกอินแล้วไปหน้าแรก
 LOGOUT_REDIRECT_URL = 'login'
 
 

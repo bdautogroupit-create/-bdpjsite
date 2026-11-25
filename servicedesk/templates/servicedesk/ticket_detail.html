@@ -1,4 +1,4 @@
-{% extends "servicedesk/base.html" %}
+{% extends "core/base.html" %}
 {% load thai %}
 {% block title %}รายละเอียดงาน{% endblock %}
 {% block content %}
@@ -17,7 +17,7 @@
     <dt>หมายเหตุ</dt><dd>{{ object.remark|default:"-"|linebreaksbr }}</dd>
   </dl>
   <div class="dact">
-    <a class="btn" href="{% url 'servicedesk:dashboard' %}">กลับ</a>
+    <a class="btn" href="{% url 'servicedesk:ticket_list' %}">กลับ</a>
     {% if perms.servicedesk.change_ticket %}<a class="btn" href="{% url 'servicedesk:ticket_edit' object.pk %}">แก้ไข</a>{% endif %}
     {% if perms.servicedesk.delete_ticket %}<a class="btn dg" href="{% url 'servicedesk:ticket_delete' object.pk %}">ลบ</a>{% endif %}
   </div>

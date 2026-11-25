@@ -1,4 +1,4 @@
-# ไฟล์นี้ทำอะไร: ชุดทดสอบอัตโนมัติ รันด้วย: python manage.py test servicedesk
+# ไฟล์นี้ทำอะไร: ชุดทดสอบอัตโนมัติของ servicedesk รันด้วย: python manage.py test servicedesk
 from datetime import date, time
 
 from django.contrib.auth import get_user_model
@@ -33,25 +33,33 @@ class ServiceDeskTests(TestCase):
         self.assertEqual(k["longest"], 551)
         self.assertEqual(k["no_time"], 2)
 
-    def test_dashboard_needs_login(self):
-        r = self.client.get(reverse("servicedesk:dashboard"))
-        self.assertEqual(r.status_code, 302)
-        self.assertIn("/accounts/login/", r["Location"])
+    def test_pages_need_login(self):
+        for name in ("dashboard", "ticket_list"):
+            r = self.client.get(reverse(f"servicedesk:{name}"))
+            self.assertEqual(r.status_code, 302)
+            self.assertIn("/accounts/login/", r["Location"])
 
-    def test_filter_and_pagination(self):
+    def test_dashboard_filter_by_branch(self):
         self.client.login(username="admin", password="pw")
         r = self.client.get(reverse("servicedesk:dashboard"), {"branch": "BDSK"})
-        self.assertEqual(r.context["total"], 5)
+        self.assertEqual(r.context["kpi"]["total"], 5)
+
+    def test_ticket_list_filter_search_and_pagination(self):
+        self.client.login(username="admin", password="pw")
+        url = reverse("servicedesk:ticket_list")
+        self.assertEqual(self.client.get(url).context["paginator"].count, 21)
+        self.assertEqual(self.client.get(url, {"branch": "BDSK"}).context["paginator"].count, 5)
+        self.assertEqual(self.client.get(url, {"q": "Dealer"}).context["paginator"].count, 3)
         branch, cat = Branch.objects.get(code="BDSK"), Category.objects.first()
         for i in range(40):
             Ticket.objects.create(branch=branch, category=cat, subject=f"x{i}", date="2026-05-01", opened_at="09:00")
-        r = self.client.get(reverse("servicedesk:dashboard"), {"page": 2})
+        r = self.client.get(url, {"page": 2})
         self.assertEqual(r.context["page_obj"].number, 2)
         self.assertEqual(len(r.context["page_obj"]), 30)
 
     def test_viewer_is_read_only(self):
         self.client.login(username="viewer", password="pw")
-        r = self.client.get(reverse("servicedesk:dashboard"))
+        r = self.client.get(reverse("servicedesk:ticket_list"))
         self.assertEqual(r.status_code, 200)
         self.assertNotContains(r, "เพิ่มงานใหม่")
         self.assertEqual(self.client.get(reverse("servicedesk:ticket_add")).status_code, 403)

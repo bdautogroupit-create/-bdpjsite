@@ -1,4 +1,4 @@
-{% extends "servicedesk/base.html" %}
+{% extends "core/base.html" %}
 {% load thai %}
 {% block title %}ลบงาน{% endblock %}
 {% block content %}
@@ -7,7 +7,7 @@
   <p>{{ object.subject }} ({{ object.branch }}, {{ object.date|thai_short }})<br>การลบไม่สามารถย้อนกลับได้</p>
   <form method="post">{% csrf_token %}
     <div class="dact">
-      <a class="btn" href="{% url 'servicedesk:dashboard' %}">ยกเลิก</a>
+      <a class="btn" href="{% url 'servicedesk:ticket_list' %}">ยกเลิก</a>
       <button class="btn dg" type="submit">ลบ</button>
     </div>
   </form>

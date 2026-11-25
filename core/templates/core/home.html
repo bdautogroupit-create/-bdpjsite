@@ -1,0 +1,13 @@
+{% extends "core/base.html" %}
+{% block title %}หน้าแรก{% endblock %}
+{% block content %}
+<section class="welcome">
+  <h1>ยินดีต้อนรับเข้าสู่ระบบ Computer Support</h1>
+  <p class="sub">เลือกเมนูด้านซ้าย หรือกดทางลัดด้านล่างเพื่อเริ่มใช้งาน</p>
+  <div class="cards">
+    {% for item in menu %}{% for c in item.children %}
+    <a class="card" href="{{ c.url }}"><b>{{ c.label }}</b><span>{{ item.label }}</span></a>
+    {% endfor %}{% endfor %}
+  </div>
+</section>
+{% endblock %}
