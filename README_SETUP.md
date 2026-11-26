@@ -30,8 +30,7 @@ D:\Python\bdpjsite\
     ├── utils.py                    คำนวณ KPI, จัดหมวดปัญหาอัตโนมัติ
     ├── admin.py  tests.py  apps.py
     ├── templatetags\thai.py        แสดงวันที่ พ.ศ. และเวลาที่ใช้
-    ├── management\commands\import_servicedesk.py   นำเข้าข้อมูลจาก seed/Excel
-    ├── seed\                       ข้อมูลเริ่มต้น
+    ├── management\commands\import_servicedesk.py   นำเข้าสาขา/งานจากไฟล์ Excel (ไม่มีข้อมูลเริ่มต้นในโค้ด)
     ├── templates\servicedesk\      dashboard.html, ticket_list.html, ticket_form.html ...
     └── static\servicedesk\app.css  หน้าตาเฉพาะแดชบอร์ดและรายการงาน
 ```
@@ -75,5 +74,16 @@ git push
 5. ในหน้าเว็บของแอปใหม่ เขียน `{% extends "core/base.html" %}` จะได้เมนูซ้ายและหน้าตาเหมือนกันทั้งระบบ
 หน้าแรกจะแสดงทางลัดของเมนูใหม่ให้อัตโนมัติ
 
+## ข้อมูลในระบบมาจากไหน
+ไม่มีข้อมูลเริ่มต้นในโค้ด ข้อมูลทั้งหมดอยู่ในฐานข้อมูล (Neon บนเว็บจริง, `db.sqlite3` ในเครื่อง) วิธีเพิ่มข้อมูล
+- **งาน**: ปุ่ม "เพิ่มงานใหม่" ในหน้ารายการงาน
+- **สาขาและหมวดปัญหา**: เข้า `/admin/` แล้วเพิ่ม/แก้ไขในเมนู "สาขา" และ "หมวดปัญหา"
+- **จากไฟล์ Excel** (ติดตั้ง `pip install openpyxl` ครั้งเดียว):
+  ```
+  python manage.py import_servicedesk --branches-excel สาขา.xlsx
+  python manage.py import_servicedesk --excel Service_Desk.xlsx
+  ```
+  รันซ้ำได้โดยไม่เกิดรายการซ้ำ
+
 ## ความปลอดภัยของข้อมูล
-`servicedesk\seed\tickets.json` มีชื่อผู้ขอและรายละเอียดงานภายใน GitHub repo เป็น Public จึงต้องไม่ push ไฟล์นี้ (ตั้งใน `.gitignore` แล้ว)
+GitHub repo เป็น Public ข้อมูลงานจริงอยู่ในฐานข้อมูล ไม่อยู่ใน repo อย่านำไฟล์ Excel ที่มีข้อมูลจริง (ชื่อผู้ขอ รายละเอียดงาน) ขึ้น GitHub และอย่า commit ไฟล์ `.env`
