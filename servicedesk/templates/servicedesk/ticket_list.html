@@ -22,6 +22,8 @@
 </section>
 
 <section class="panel">
+  <div class="ph"><h2>พบ {{ total }} รายการ</h2>
+    {% if total %}<a class="btn btn-lg" href="{% url 'servicedesk:ticket_export' %}{% if export_qs %}?{{ export_qs }}{% endif %}">ส่งออก Excel</a>{% endif %}</div>
   <div class="tw"><table>
     <thead><tr><th>วันที่เปิด</th><th>สาขา</th><th>เรื่อง</th><th>หมวด</th><th>เวลาที่ใช้</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
     <tbody>

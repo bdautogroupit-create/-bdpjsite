@@ -1,4 +1,5 @@
 # ไฟล์นี้ทำอะไร: ชุดทดสอบอัตโนมัติของ servicedesk (สร้างข้อมูลทดสอบเองในโค้ด ไม่ต้องมีไฟล์ข้อมูลใดๆ) รันด้วย: python manage.py test servicedesk
+import io
 import os
 import tempfile
 from datetime import date, datetime, time
@@ -114,6 +115,56 @@ class ServiceDeskTests(TestCase):
         self.assertContains(bad, "วันที่และเวลาที่ปิดต้องไม่ก่อนวันที่และเวลาที่เปิด")
         self.client.post(reverse("servicedesk:ticket_delete", args=[t.pk]))
         self.assertFalse(Ticket.objects.filter(pk=t.pk).exists())
+
+    # ---------- ส่งออก Excel ----------
+    def _export(self, params=None):
+        try:
+            from openpyxl import load_workbook
+        except ImportError:
+            self.skipTest("ต้องติดตั้ง openpyxl ก่อน (pip install openpyxl)")
+        r = self.client.get(reverse("servicedesk:ticket_export"), params or {})
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("spreadsheetml", r["Content-Type"])
+        self.assertIn(".xlsx", r["Content-Disposition"])
+        return load_workbook(io.BytesIO(r.content))
+
+    def test_export_needs_login(self):
+        r = self.client.get(reverse("servicedesk:ticket_export"))
+        self.assertEqual(r.status_code, 302)
+        self.assertIn("/accounts/login/", r["Location"])
+
+    def test_export_excel_uses_the_same_filters_as_the_list(self):
+        self.client.login(username="viewer", password="pw")  # ผู้ดูอย่างเดียวก็ส่งออกได้
+        ws = self._export({"branch": "BDSK"})["รายการงาน"]
+        self.assertEqual(ws.max_row, 4)  # หัวตาราง + 3 งานของ BDSK
+        headers = [c.value for c in ws[1]]
+        self.assertEqual(ws.cell(row=2, column=headers.index("เรื่อง") + 1).value, "internet ช้ามาก")  # ใหม่สุดก่อน
+        self.assertEqual(ws.cell(row=2, column=headers.index("เวลาที่ใช้ (นาที)") + 1).value, 60)
+        summary = {r[0].value: r[1].value for r in self._export({"branch": "BDSK"})["สรุป"].iter_rows()}
+        self.assertEqual(summary["จำนวนงาน"], 3)
+        self.assertEqual(summary["สาขา"], "BDSK สงขลา")
+
+    def test_export_exports_all_pages_not_just_the_visible_page(self):
+        self.client.login(username="admin", password="pw")
+        branch, cat = Branch.objects.get(code="BDSK"), Category.objects.first()
+        for i in range(60):
+            make_ticket(branch, cat, f"x{i}", date(2026, 5, 1), time(9, 0))
+        ws = self._export({"page": 2})["รายการงาน"]
+        self.assertEqual(ws.max_row, 66)  # หัวตาราง + 65 งาน (ไม่ใช่แค่ 30 งานของหน้า 2)
+
+    def test_export_does_not_turn_text_into_a_formula(self):
+        self.client.login(username="admin", password="pw")
+        make_ticket(Branch.objects.first(), Category.objects.first(), "=1+1", date(2026, 5, 9), time(9, 0))
+        ws = self._export({"q": "=1+1"})["รายการงาน"]
+        cell = ws.cell(row=2, column=[c.value for c in ws[1]].index("เรื่อง") + 1)
+        self.assertEqual(cell.value, "=1+1")
+        self.assertEqual(cell.data_type, "s")  # เป็นข้อความ ไม่ใช่สูตร
+
+    def test_list_page_has_export_button_with_current_filters(self):
+        self.client.login(username="viewer", password="pw")
+        r = self.client.get(reverse("servicedesk:ticket_list"), {"branch": "BDSK"})
+        self.assertContains(r, "ส่งออก Excel")
+        self.assertContains(r, "export/?branch=BDSK")
 
     def test_cross_day_duration(self):
         t = Ticket.objects.create(branch=Branch.objects.first(), category=Category.objects.first(),

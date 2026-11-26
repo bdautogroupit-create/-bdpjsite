@@ -7,9 +7,11 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db.models import Q
-from django.shortcuts import render
+from django.http import HttpResponse
+from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 from django.utils import timezone
+from django.utils.http import urlencode
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
 from .forms import TicketForm
@@ -200,24 +202,32 @@ def dashboard(request):
 LIST_URL = reverse_lazy("servicedesk:ticket_list")  # ทำรายการเสร็จแล้วกลับมาหน้ารายการงาน
 
 
+FILTER_KEYS = ("q", "branch", "category", "status")  # ตัวกรองที่ใช้ในหน้ารายการงาน
+
+
+def filter_tickets(request):
+    """งานที่ตรงกับตัวกรองใน URL (คำค้น/สาขา/หมวด/สถานะ) ใช้ร่วมกันทั้งหน้ารายการงานและปุ่มส่งออก Excel"""
+    qs = Ticket.objects.select_related("branch", "category")  # เรียงใหม่→เก่าตาม Meta ของโมเดล
+    g = request.GET
+    if g.get("branch"):
+        qs = qs.filter(branch__code=g["branch"])
+    if g.get("category"):
+        qs = qs.filter(category__name=g["category"])
+    if g.get("status"):
+        qs = qs.filter(status=g["status"])
+    q = g.get("q", "").strip()
+    if q:
+        qs = qs.filter(Q(subject__icontains=q) | Q(requester__icontains=q) | Q(solution__icontains=q))
+    return qs
+
+
 class TicketList(LoginRequiredMixin, ListView):
     """รายการงาน: ค้นหาคำ + กรองสาขา/หมวด/สถานะ แบ่งหน้าละ 30 รายการ"""
     template_name = "servicedesk/ticket_list.html"
     paginate_by = 30
 
     def get_queryset(self):
-        qs = Ticket.objects.select_related("branch", "category")  # เรียงใหม่→เก่าตาม Meta ของโมเดล
-        g = self.request.GET
-        if g.get("branch"):
-            qs = qs.filter(branch__code=g["branch"])
-        if g.get("category"):
-            qs = qs.filter(category__name=g["category"])
-        if g.get("status"):
-            qs = qs.filter(status=g["status"])
-        q = g.get("q", "").strip()
-        if q:
-            qs = qs.filter(Q(subject__icontains=q) | Q(requester__icontains=q) | Q(solution__icontains=q))
-        return qs
+        return filter_tickets(self.request)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -231,7 +241,33 @@ class TicketList(LoginRequiredMixin, ListView):
             "total": ctx["paginator"].count,
         })
         ctx["pages"], ctx["prev_url"], ctx["next_url"] = page_links(self.request, ctx["page_obj"])
+        ctx["export_qs"] = urlencode({k: g[k] for k in FILTER_KEYS if g.get(k)})  # ส่งตัวกรองเดียวกันไปให้ปุ่มส่งออก
         return ctx
+
+
+@login_required
+def export_tickets(request):
+    """ปุ่ม "ส่งออก Excel": ส่งออกงานที่กรองอยู่ทั้งหมด (ไม่ใช่แค่หน้าที่เห็น) เป็นไฟล์ .xlsx"""
+    try:
+        from .exports import build_tickets_workbook
+    except ImportError:
+        messages.error(request, "ส่งออก Excel ไม่ได้ เพราะยังไม่ได้ติดตั้ง openpyxl (เพิ่มบรรทัด openpyxl ใน requirements.txt)")
+        return redirect("servicedesk:ticket_list")
+
+    g = request.GET
+    branch = Branch.objects.filter(code=g["branch"]).first() if g.get("branch") else None
+    conditions = [
+        ("คำค้น", g.get("q", "").strip() or "ทั้งหมด"),
+        ("สาขา", str(branch) if branch else (g.get("branch") or "ทุกสาขา")),
+        ("หมวดปัญหา", g.get("category") or "ทุกหมวด"),
+        ("สถานะ", g.get("status") or "ทุกสถานะ"),
+    ]
+    now = timezone.localtime()
+    wb = build_tickets_workbook(filter_tickets(request), conditions, request.user.get_username(), now)
+    response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    response["Content-Disposition"] = f'attachment; filename="service_desk_{now:%Y%m%d_%H%M}.xlsx"'
+    wb.save(response)
+    return response
 
 
 class TicketDetail(LoginRequiredMixin, DetailView):
