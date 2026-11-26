@@ -1,0 +1,12 @@
+{% extends "servicedesk/base.html" %}
+{% block title %}หน้าแรก{% endblock %}
+{% block content %}
+<section class="welcome">
+  <h1>ยินดีต้อนรับเข้าสู่ระบบ Computer Support</h1>
+  <p class="sub">เลือกเมนูด้านซ้าย หรือกดทางลัดด้านล่างเพื่อเริ่มใช้งาน</p>
+  <div class="cards">
+    <a class="card" href="{% url 'servicedesk:dashboard' %}"><b>แดชบอร์ด</b><span>แจ้งปัญหาในการใช้งาน</span></a>
+    <a class="card" href="{% url 'servicedesk:ticket_list' %}"><b>แจ้งปัญหาการใช้งาน</b><span>แจ้งปัญหาในการใช้งาน</span></a>
+  </div>
+</section>
+{% endblock %}

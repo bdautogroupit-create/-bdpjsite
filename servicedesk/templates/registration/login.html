@@ -2,7 +2,7 @@
 {% block title %}เข้าสู่ระบบ{% endblock %}
 {% block content %}
 <section class="panel narrow">
-  <h2>เข้าสู่ระบบ IT Service Desk</h2>
+  <h2>เข้าสู่ระบบ Computer Support</h2>
   <form method="post" class="stack">{% csrf_token %}
     {% if form.non_field_errors %}<p class="er">ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง</p>{% endif %}
     <label>ชื่อผู้ใช้{{ form.username }}</label>

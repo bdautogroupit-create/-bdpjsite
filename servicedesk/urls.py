@@ -1,13 +1,12 @@
-# ไฟล์นี้ทำอะไร: กำหนด URL ของแอป servicedesk (ทุกที่อยู่ขึ้นต้นด้วย /servicedesk/)
+# ไฟล์นี้ทำอะไร: กำหนด URL ของระบบ (หน้าแรก "/", แดชบอร์ด, รายการงาน และ เพิ่ม/แก้ไข/ดู/ลบ งาน)
 from django.urls import path
-from django.views.generic import RedirectView
 
 from . import views
 
 app_name = "servicedesk"
 
 urlpatterns = [
-    path("", RedirectView.as_view(pattern_name="servicedesk:dashboard", permanent=False)),
+    path("", views.home, name="home"),                                        # หน้าแรก
     path("dashboard/", views.dashboard, name="dashboard"),                    # เมนูย่อย: แดชบอร์ด
     path("tickets/", views.TicketList.as_view(), name="ticket_list"),         # เมนูย่อย: แจ้งปัญหาการใช้งาน (รายการงาน)
     path("tickets/add/", views.TicketCreate.as_view(), name="ticket_add"),

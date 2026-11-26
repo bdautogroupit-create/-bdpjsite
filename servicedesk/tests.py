@@ -49,10 +49,23 @@ class ServiceDeskTests(TestCase):
         self.assertEqual(k["no_time"], 1)
 
     def test_pages_need_login(self):
-        for name in ("dashboard", "ticket_list"):
+        for name in ("home", "dashboard", "ticket_list"):
             r = self.client.get(reverse(f"servicedesk:{name}"))
             self.assertEqual(r.status_code, 302)
             self.assertIn("/accounts/login/", r["Location"])
+
+    def test_home_shows_welcome_and_menu(self):
+        self.client.login(username="viewer", password="pw")
+        r = self.client.get(reverse("servicedesk:home"))
+        self.assertContains(r, "ยินดีต้อนรับเข้าสู่ระบบ Computer Support")
+        for label in ("แจ้งปัญหาในการใช้งาน", "แดชบอร์ด", "แจ้งปัญหาการใช้งาน"):
+            self.assertContains(r, label)
+
+    def test_menu_highlights_current_page(self):
+        self.client.login(username="viewer", password="pw")
+        for name in ("dashboard", "ticket_list"):
+            r = self.client.get(reverse(f"servicedesk:{name}"))
+            self.assertContains(r, 'nav-sub on', count=1)  # เมนูย่อยที่กำลังเปิดอยู่ มีเมนูเดียว
 
     def test_dashboard_filter_by_branch(self):
         self.client.login(username="admin", password="pw")

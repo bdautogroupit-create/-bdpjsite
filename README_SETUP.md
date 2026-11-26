@@ -1,89 +1,77 @@
 # ระบบ Computer Support (bdpjsite): โครงสร้างและวิธีอัปเดต
 
-## โครงสร้างไฟล์
+## โครงสร้างไฟล์ (มีแอปเดียวคือ servicedesk)
 
 ```
 D:\Python\bdpjsite\
 ├── .idea  .venv  .gitignore  db.sqlite3  manage.py  requirements.txt     (ของเดิม)
 │
-├── config\                         ตั้งค่าทั้งเว็บ
+├── config\
 │   ├── settings.py                 ตั้งค่า (รายชื่อแอป, ฐานข้อมูล, ภาษาไทย, ล็อกอิน)
-│   └── urls.py                     ศูนย์รวม URL: ต่อ core, servicedesk, admin, accounts
+│   └── urls.py                     ศูนย์รวม URL (admin, ล็อกอิน, servicedesk)
 │
-├── core\                           ระบบกลาง: หน้าแรก + เมนู + หน้าตาที่ทุกโมดูลใช้ร่วมกัน
-│   ├── navigation.py               ★ เมนูทั้งระบบอยู่ที่ไฟล์นี้ไฟล์เดียว
-│   ├── context_processors.py       ส่งเมนูไปทุกหน้า และบอกว่าเมนูไหนกำลังเปิดอยู่
-│   ├── views.py / urls.py          หน้าแรก "/" (ยินดีต้อนรับ)
-│   ├── templates\core\base.html    โครงหน้าเว็บ (เมนูซ้าย + เนื้อหา) ทุกหน้าใช้ร่วมกัน
-│   ├── templates\core\home.html    หน้าแรก
-│   ├── templates\registration\login.html   หน้าเข้าสู่ระบบ
-│   └── static\core\base.css        สี ตัวอักษร เมนู ปุ่ม ตาราง ฟอร์ม
-│
-└── servicedesk\                    โมดูล "แจ้งปัญหาในการใช้งาน"
+└── servicedesk\
     ├── models.py                   ตารางข้อมูล: สาขา, หมวดปัญหา, งาน
+    ├── views.py                    ★ ตรรกะของทุกหน้า (หน้าแรก, แดชบอร์ด, รายการงาน, เพิ่ม/แก้ไข/ดู/ลบ)
+    ├── urls.py                     กำหนด URL ของแต่ละหน้า
     ├── forms.py                    ฟอร์มเพิ่ม/แก้ไขงาน
-    ├── urls.py                     /servicedesk/dashboard/  และ  /servicedesk/tickets/ ...
-    ├── views\
-    │   ├── dashboard_views.py      หน้า "แดชบอร์ด"
-    │   └── ticket_views.py         หน้า "รายการงาน" และ เพิ่ม/แก้ไข/ดู/ลบ
-    ├── querystring.py              ตัวช่วยทำลิงก์ตัวกรองและเลขหน้า
-    ├── utils.py                    คำนวณ KPI, จัดหมวดปัญหาอัตโนมัติ
-    ├── admin.py  tests.py  apps.py
+    ├── admin.py                    หน้า /admin
+    ├── utils.py                    คำนวณ KPI และจัดหมวดปัญหาอัตโนมัติ
+    ├── tests.py                    ชุดทดสอบอัตโนมัติ
     ├── templatetags\thai.py        แสดงวันที่ พ.ศ. และเวลาที่ใช้
-    ├── management\commands\import_servicedesk.py   นำเข้าสาขา/งานจากไฟล์ Excel (ไม่มีข้อมูลเริ่มต้นในโค้ด)
-    ├── templates\servicedesk\      dashboard.html, ticket_list.html, ticket_form.html ...
-    └── static\servicedesk\app.css  หน้าตาเฉพาะแดชบอร์ดและรายการงาน
+    ├── management\commands\import_servicedesk.py   นำเข้าสาขา/งานจาก Excel
+    ├── templates\
+    │   ├── servicedesk\
+    │   │   ├── base.html           ★ โครงหน้าเว็บ + เมนูซ้าย (แก้เมนูที่นี่)
+    │   │   ├── home.html           หน้าแรก
+    │   │   ├── dashboard.html      หน้าแดชบอร์ด
+    │   │   ├── ticket_list.html    หน้ารายการงาน
+    │   │   └── ticket_form.html / ticket_detail.html / ticket_confirm_delete.html / _field.html
+    │   └── registration\login.html หน้าเข้าสู่ระบบ
+    └── static\servicedesk\app.css  หน้าตาทั้งระบบ (ไฟล์เดียว)
 ```
 
-## เมนูและ URL ในระบบ
+## เมนูและ URL
 
 | เมนู | หน้าที่แสดง | URL |
 |---|---|---|
 | หน้าแรก | ยินดีต้อนรับเข้าสู่ระบบ Computer Support | `/` |
-| แจ้งปัญหาในการใช้งาน > แดชบอร์ด | แดชบอร์ด | `/servicedesk/dashboard/` |
-| แจ้งปัญหาในการใช้งาน > แจ้งปัญหาการใช้งาน | รายการงาน (ค้นหา กรอง เพิ่ม แก้ไข ลบ) | `/servicedesk/tickets/` |
+| แจ้งปัญหาในการใช้งาน > แดชบอร์ด | แดชบอร์ด | `/dashboard/` |
+| แจ้งปัญหาในการใช้งาน > แจ้งปัญหาการใช้งาน | รายการงาน | `/tickets/` |
 
-## วิธีอัปเดตจากเวอร์ชันก่อนหน้า
+อยากเพิ่ม/แก้ไข/ลบเมนู: เปิด `servicedesk\templates\servicedesk\base.html` แล้วแก้ในส่วน `<nav>` (มีคอมเมนต์กำกับ)
 
-**1. ลบไฟล์เก่า 3 ไฟล์** (ถูกย้ายหรือแทนที่แล้ว) PowerShell ที่โฟลเดอร์โปรเจกต์
+## วิธีอัปเดต (เอาแอป core ออก กลับมาใช้แอปเดียว)
+
+**1. ลบของเก่าก่อน** (ต้องทำก่อนแตกไฟล์) PowerShell ที่โฟลเดอร์โปรเจกต์
 ```
-Remove-Item servicedesk\views.py, servicedesk\templates\servicedesk\base.html, servicedesk\templates\registration\login.html
+Remove-Item -Recurse -Force core, servicedesk\views, servicedesk\querystring.py
 ```
 **2. แตกไฟล์ zip ลงใน D:\Python\bdpjsite** เลือกแทนที่ไฟล์เดิม
 **3. ตรวจและทดสอบ** (ไม่ต้อง makemigrations เพราะไม่ได้แก้ตารางข้อมูล)
 ```
 python manage.py check
-python manage.py test core servicedesk
+python manage.py test servicedesk
 python manage.py runserver
 ```
 **4. ส่งขึ้นออนไลน์**
 ```
-git add config core servicedesk README_SETUP.md
+git add -A config servicedesk README_SETUP.md
 git status
-git commit -m "Add menu layout, home page, split dashboard and ticket list"
+git commit -m "Remove core app; keep single servicedesk app with menu"
 git push
 ```
-ใน `git status` ต้องไม่เห็น `tickets.json` และ `db.sqlite3`
-
-## วิธีเพิ่มระบบ (โมดูล) ใหม่ในอนาคต
-ตัวอย่าง: ทะเบียนอุปกรณ์ IT
-1. `python manage.py startapp assets` สร้างแอปใหม่ แล้วเขียน models/views/urls ภายในแอปนั้น (ตั้ง `app_name = "assets"` ใน urls.py)
-2. `config/settings.py` เพิ่ม `'assets'` ใน `INSTALLED_APPS`
-3. `config/urls.py` เพิ่ม `path("assets/", include("assets.urls"))`
-4. `core/navigation.py` เพิ่มเมนู เช่น `{"label": "ทะเบียนอุปกรณ์ IT", "children": [{"label": "รายการอุปกรณ์", "url_name": "assets:list"}]}`
-5. ในหน้าเว็บของแอปใหม่ เขียน `{% extends "core/base.html" %}` จะได้เมนูซ้ายและหน้าตาเหมือนกันทั้งระบบ
-หน้าแรกจะแสดงทางลัดของเมนูใหม่ให้อัตโนมัติ
+ใน `git status` ควรเห็นไฟล์ในโฟลเดอร์ `core` ถูกลบ (deleted) และต้องไม่เห็น `db.sqlite3`
 
 ## ข้อมูลในระบบมาจากไหน
-ไม่มีข้อมูลเริ่มต้นในโค้ด ข้อมูลทั้งหมดอยู่ในฐานข้อมูล (Neon บนเว็บจริง, `db.sqlite3` ในเครื่อง) วิธีเพิ่มข้อมูล
+ไม่มีข้อมูลเริ่มต้นในโค้ด ข้อมูลทั้งหมดอยู่ในฐานข้อมูล (Neon บนเว็บจริง, `db.sqlite3` ในเครื่อง)
 - **งาน**: ปุ่ม "เพิ่มงานใหม่" ในหน้ารายการงาน
-- **สาขาและหมวดปัญหา**: เข้า `/admin/` แล้วเพิ่ม/แก้ไขในเมนู "สาขา" และ "หมวดปัญหา"
-- **จากไฟล์ Excel** (ติดตั้ง `pip install openpyxl` ครั้งเดียว):
+- **สาขาและหมวดปัญหา**: เข้า `/admin/` เพิ่ม/แก้ไขในเมนู "สาขา" และ "หมวดปัญหา"
+- **จาก Excel** (ติดตั้ง `pip install openpyxl` ครั้งเดียว):
   ```
   python manage.py import_servicedesk --branches-excel สาขา.xlsx
   python manage.py import_servicedesk --excel Service_Desk.xlsx
   ```
-  รันซ้ำได้โดยไม่เกิดรายการซ้ำ
 
 ## ความปลอดภัยของข้อมูล
 GitHub repo เป็น Public ข้อมูลงานจริงอยู่ในฐานข้อมูล ไม่อยู่ใน repo อย่านำไฟล์ Excel ที่มีข้อมูลจริง (ชื่อผู้ขอ รายละเอียดงาน) ขึ้น GitHub และอย่า commit ไฟล์ `.env`
