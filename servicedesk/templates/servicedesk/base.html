@@ -21,6 +21,14 @@
         <a class="nav-sub{% if n == 'dashboard' %} on{% endif %}" href="{% url 'servicedesk:dashboard' %}">แดชบอร์ด</a>
         <a class="nav-sub{% if n == 'ticket_list' or n == 'ticket_add' or n == 'ticket_detail' or n == 'ticket_edit' or n == 'ticket_delete' %} on{% endif %}" href="{% url 'servicedesk:ticket_list' %}">แจ้งปัญหาการใช้งาน</a>
       </details>
+      {# เมนูตั้งค่า: แสดงเฉพาะผู้ที่มีสิทธิ์ดูสาขา/หมวดปัญหา #}
+      {% if perms.servicedesk.view_branch or perms.servicedesk.view_category %}
+      <details class="nav-grp"{% if 'branch' in n or 'category' in n %} open{% endif %}>
+        <summary>ตั้งค่า</summary>
+        {% if perms.servicedesk.view_branch %}<a class="nav-sub{% if 'branch' in n %} on{% endif %}" href="{% url 'servicedesk:branch_list' %}">จัดการสาขา</a>{% endif %}
+        {% if perms.servicedesk.view_category %}<a class="nav-sub{% if 'category' in n %} on{% endif %}" href="{% url 'servicedesk:category_list' %}">จัดการหมวดปัญหา</a>{% endif %}
+      </details>
+      {% endif %}
     </nav>
     <div class="who">
       <span>{{ user.get_username }}</span>

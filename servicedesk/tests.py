@@ -5,6 +5,7 @@ import tempfile
 from datetime import date, datetime, time
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
 from django.core.management import call_command
 from django.test import TestCase
 from django.urls import reverse
@@ -206,3 +207,83 @@ class ImportCommandTests(TestCase):
         self.assertEqual(t.duration_minutes, 30)
         self.assertEqual(t.category.name, "Dealer Pro")
         self.assertEqual(t.branch.name, "สงขลา")
+
+
+class SettingsTests(TestCase):
+    """หน้าตั้งค่า: จัดการสาขาและหมวดปัญหา"""
+
+    @classmethod
+    def setUpTestData(cls):
+        User = get_user_model()
+        User.objects.create_superuser("admin", "a@example.com", "pw")
+        User.objects.create_user("nobody", password="pw")  # ไม่มีสิทธิ์ใดๆ
+        reader = User.objects.create_user("reader", password="pw")  # ดูสาขาได้อย่างเดียว
+        reader.user_permissions.add(Permission.objects.get(codename="view_branch"))
+        cls.used_branch = Branch.objects.create(code="BDSK", name="สงขลา")
+        cls.free_branch = Branch.objects.create(code="BDPL", name="พัทลุง")
+        cls.used_cat = Category.objects.create(name="Dealer Pro")
+        cls.free_cat = Category.objects.create(name="ว่าง")
+        make_ticket(cls.used_branch, cls.used_cat, "ทดสอบ", date(2026, 5, 4), time(9, 0))
+
+    def test_needs_login_and_permission(self):
+        url = reverse("servicedesk:branch_list")
+        self.assertEqual(self.client.get(url).status_code, 302)
+        self.client.login(username="nobody", password="pw")
+        for name in ("branch_list", "branch_add", "category_list", "category_add"):
+            self.assertEqual(self.client.get(reverse(f"servicedesk:{name}")).status_code, 403)
+
+    def test_read_only_user_sees_only_what_permission_allows(self):
+        self.client.login(username="reader", password="pw")
+        r = self.client.get(reverse("servicedesk:branch_list"))
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "จัดการสาขา")
+        self.assertNotContains(r, "จัดการหมวดปัญหา")  # ไม่มีสิทธิ์ดูหมวดปัญหา เมนูไม่แสดง
+        self.assertNotContains(r, "เพิ่มสาขา")        # ไม่มีสิทธิ์เพิ่ม ปุ่มไม่แสดง
+        self.assertEqual(self.client.get(reverse("servicedesk:branch_add")).status_code, 403)
+        self.assertEqual(self.client.get(reverse("servicedesk:category_list")).status_code, 403)
+
+    def test_lists_show_ticket_counts(self):
+        self.client.login(username="admin", password="pw")
+        counts = {b.code: b.ticket_count for b in self.client.get(reverse("servicedesk:branch_list")).context["object_list"]}
+        self.assertEqual(counts, {"BDSK": 1, "BDPL": 0})
+        counts = {c.name: c.ticket_count for c in self.client.get(reverse("servicedesk:category_list")).context["object_list"]}
+        self.assertEqual(counts, {"Dealer Pro": 1, "ว่าง": 0})
+
+    def test_branch_add_edit_delete(self):
+        self.client.login(username="admin", password="pw")
+        self.client.post(reverse("servicedesk:branch_add"), {"code": " bdxx ", "name": "ทดสอบ", "company_name": ""})
+        b = Branch.objects.get(code="BDXX")  # ตัดช่องว่างและแปลงเป็นตัวพิมพ์ใหญ่
+        dup = self.client.post(reverse("servicedesk:branch_add"), {"code": "bdxx", "name": "ซ้ำ", "company_name": ""})
+        self.assertEqual(dup.status_code, 200)  # รหัสซ้ำ ฟอร์มแสดงข้อผิดพลาด ไม่บันทึก
+        self.assertEqual(Branch.objects.filter(code="BDXX").count(), 1)
+        self.client.post(reverse("servicedesk:branch_edit", args=[b.pk]), {"code": "BDXX", "name": "ชื่อใหม่", "company_name": "บริษัท"})
+        b.refresh_from_db()
+        self.assertEqual((b.name, b.company_name), ("ชื่อใหม่", "บริษัท"))
+        self.client.post(reverse("servicedesk:branch_delete", args=[b.pk]))
+        self.assertFalse(Branch.objects.filter(pk=b.pk).exists())
+
+    def test_branch_with_tickets_cannot_be_deleted(self):
+        self.client.login(username="admin", password="pw")
+        url = reverse("servicedesk:branch_delete", args=[self.used_branch.pk])
+        self.assertContains(self.client.get(url), "ลบไม่ได้")
+        r = self.client.post(url, follow=True)
+        self.assertContains(r, "ลบสาขานี้ไม่ได้")
+        self.assertTrue(Branch.objects.filter(pk=self.used_branch.pk).exists())
+
+    def test_category_add_edit_delete(self):
+        self.client.login(username="admin", password="pw")
+        self.client.post(reverse("servicedesk:category_add"), {"name": "  เครือข่าย  "})
+        c = Category.objects.get(name="เครือข่าย")
+        dup = self.client.post(reverse("servicedesk:category_add"), {"name": "เครือข่าย"})
+        self.assertEqual(dup.status_code, 200)
+        self.client.post(reverse("servicedesk:category_edit", args=[c.pk]), {"name": "Network"})
+        c.refresh_from_db()
+        self.assertEqual(c.name, "Network")
+        self.client.post(reverse("servicedesk:category_delete", args=[c.pk]))
+        self.assertFalse(Category.objects.filter(pk=c.pk).exists())
+
+    def test_category_with_tickets_cannot_be_deleted(self):
+        self.client.login(username="admin", password="pw")
+        r = self.client.post(reverse("servicedesk:category_delete", args=[self.used_cat.pk]), follow=True)
+        self.assertContains(r, "ลบหมวดปัญหานี้ไม่ได้")
+        self.assertTrue(Category.objects.filter(pk=self.used_cat.pk).exists())

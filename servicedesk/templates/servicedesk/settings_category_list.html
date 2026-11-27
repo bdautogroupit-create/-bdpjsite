@@ -1,0 +1,21 @@
+{% extends "servicedesk/base.html" %}
+{% block title %}จัดการหมวดปัญหา{% endblock %}
+{% block content %}
+<h1>จัดการหมวดปัญหา</h1>
+<p class="sub">เพิ่ม แก้ไข หรือลบหมวดปัญหาที่ใช้จัดกลุ่มงาน (หมวดที่มีงานอยู่แล้วจะลบไม่ได้)</p>
+<section class="panel">
+  <div class="ph"><h2>หมวดปัญหาทั้งหมด {{ object_list|length }} หมวด</h2>
+    {% if perms.servicedesk.add_category %}<a class="pri" href="{% url 'servicedesk:category_add' %}">เพิ่มหมวดปัญหา</a>{% endif %}</div>
+  <div class="tw"><table>
+    <thead><tr><th>ชื่อหมวดปัญหา</th><th>จำนวนงาน</th><th>จัดการ</th></tr></thead>
+    <tbody>
+    {% for c in object_list %}
+    <tr><td>{{ c.name }}</td><td>{{ c.ticket_count }}</td>
+      <td class="act">
+        {% if perms.servicedesk.change_category %}<a class="btn" href="{% url 'servicedesk:category_edit' c.pk %}">แก้ไข</a>{% endif %}
+        {% if perms.servicedesk.delete_category %}<a class="btn dg" href="{% url 'servicedesk:category_delete' c.pk %}">ลบ</a>{% endif %}</td></tr>
+    {% empty %}<tr><td colspan="3">ยังไม่มีหมวดปัญหา กด เพิ่มหมวดปัญหา เพื่อเริ่มต้น</td></tr>
+    {% endfor %}
+    </tbody></table></div>
+</section>
+{% endblock %}

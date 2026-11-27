@@ -1,0 +1,17 @@
+{% extends "servicedesk/base.html" %}
+{% block title %}ลบ{{ title }}{% endblock %}
+{% block content %}
+<section class="panel narrow">
+  <h2>ลบ{{ title }}นี้หรือไม่</h2>
+  <p><b>{{ object }}</b></p>
+  {% if ticket_count %}
+    <p class="er">ลบไม่ได้ เพราะมีงานใช้{{ title }}นี้อยู่ {{ ticket_count }} รายการ ถ้าต้องการเปลี่ยนชื่อ ให้ใช้ปุ่ม แก้ไข แทน</p>
+    <div class="dact"><a class="btn" href="{{ list_url }}">กลับ</a></div>
+  {% else %}
+    <p>การลบไม่สามารถย้อนกลับได้</p>
+    <form method="post">{% csrf_token %}
+      <div class="dact"><a class="btn" href="{{ list_url }}">ยกเลิก</a><button class="btn dg" type="submit">ลบ</button></div>
+    </form>
+  {% endif %}
+</section>
+{% endblock %}

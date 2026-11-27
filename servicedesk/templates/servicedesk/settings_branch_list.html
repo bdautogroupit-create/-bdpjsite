@@ -1,0 +1,21 @@
+{% extends "servicedesk/base.html" %}
+{% block title %}จัดการสาขา{% endblock %}
+{% block content %}
+<h1>จัดการสาขา</h1>
+<p class="sub">เพิ่ม แก้ไข หรือลบสาขาที่ใช้ในการแจ้งงาน (สาขาที่มีงานอยู่แล้วจะลบไม่ได้)</p>
+<section class="panel">
+  <div class="ph"><h2>สาขาทั้งหมด {{ object_list|length }} แห่ง</h2>
+    {% if perms.servicedesk.add_branch %}<a class="pri" href="{% url 'servicedesk:branch_add' %}">เพิ่มสาขา</a>{% endif %}</div>
+  <div class="tw"><table>
+    <thead><tr><th>รหัส</th><th>ชื่อสาขา</th><th>ชื่อบริษัท</th><th>จำนวนงาน</th><th>จัดการ</th></tr></thead>
+    <tbody>
+    {% for b in object_list %}
+    <tr><td>{{ b.code }}</td><td>{{ b.name }}</td><td>{{ b.company_name|default:"-" }}</td><td>{{ b.ticket_count }}</td>
+      <td class="act">
+        {% if perms.servicedesk.change_branch %}<a class="btn" href="{% url 'servicedesk:branch_edit' b.pk %}">แก้ไข</a>{% endif %}
+        {% if perms.servicedesk.delete_branch %}<a class="btn dg" href="{% url 'servicedesk:branch_delete' b.pk %}">ลบ</a>{% endif %}</td></tr>
+    {% empty %}<tr><td colspan="5">ยังไม่มีสาขา กด เพิ่มสาขา เพื่อเริ่มต้น</td></tr>
+    {% endfor %}
+    </tbody></table></div>
+</section>
+{% endblock %}

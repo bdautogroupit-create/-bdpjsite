@@ -6,15 +6,15 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.http import urlencode
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
-from .forms import TicketForm
+from .forms import BranchForm, CategoryForm, TicketForm
 from .models import Branch, Category, Ticket
 from .templatetags.thai import thai_date, thai_short
 from .utils import compute_kpis, fmt_minutes, week_start
@@ -305,3 +305,107 @@ class TicketDelete(PermissionRequiredMixin, DeleteView):
     def form_valid(self, form):
         messages.success(self.request, "ลบงานเรียบร้อยแล้ว")
         return super().form_valid(form)
+
+
+# ======================================================================
+# 5) ตั้งค่า: จัดการสาขาและหมวดปัญหา (ไม่ต้องเข้า /admin/)
+#    ผู้ใช้ต้องมีสิทธิ์ของ Django เช่น "view_branch" "add_branch" "change_branch" "delete_branch"
+#    (ผู้ดูแลระบบกำหนดสิทธิ์ที่ /admin/ > กลุ่ม)  โครงสร้าง: สาขาและหมวดปัญหาใช้รูปแบบเดียวกัน
+# ======================================================================
+class SettingsMixin(PermissionRequiredMixin):
+    """ส่วนที่หน้าตั้งค่าทุกหน้าใช้ร่วมกัน: ตรวจสิทธิ์ และกลับมาหน้ารายการเมื่อทำเสร็จ"""
+    title = ""           # ชื่อที่แสดงบนหน้าเว็บ เช่น "สาขา"
+    list_url_name = ""   # ชื่อ URL ของหน้ารายการ เช่น "servicedesk:branch_list"
+
+    def get_success_url(self):
+        return reverse(self.list_url_name)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx.update({"title": self.title, "list_url": reverse(self.list_url_name)})
+        return ctx
+
+
+class SettingsCreate(SettingsMixin, SuccessMessageMixin, CreateView):
+    template_name = "servicedesk/settings_form.html"
+    success_message = "เพิ่มข้อมูลเรียบร้อยแล้ว"
+
+
+class SettingsUpdate(SettingsMixin, SuccessMessageMixin, UpdateView):
+    template_name = "servicedesk/settings_form.html"
+    success_message = "บันทึกการแก้ไขเรียบร้อยแล้ว"
+
+
+class SettingsDelete(SettingsMixin, DeleteView):
+    """ลบได้เฉพาะที่ไม่มีงานใช้อยู่ (ถ้ามีงานใช้อยู่ ลบไม่ได้ ใช้ปุ่มแก้ไขเปลี่ยนชื่อแทน)"""
+    template_name = "servicedesk/settings_confirm_delete.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["ticket_count"] = self.object.tickets.count()
+        return ctx
+
+    def form_valid(self, form):
+        if self.object.tickets.exists():
+            messages.error(self.request, f"ลบ{self.title}นี้ไม่ได้ เพราะยังมีงานใช้อยู่")
+            return redirect(self.get_success_url())
+        messages.success(self.request, f"ลบ{self.title}เรียบร้อยแล้ว")
+        return super().form_valid(form)
+
+
+# ---- สาขา ----
+class BranchSettings:
+    model = Branch
+    title = "สาขา"
+    list_url_name = "servicedesk:branch_list"
+
+
+class BranchList(BranchSettings, SettingsMixin, ListView):
+    permission_required = "servicedesk.view_branch"
+    template_name = "servicedesk/settings_branch_list.html"
+
+    def get_queryset(self):
+        return Branch.objects.annotate(ticket_count=Count("tickets"))  # จำนวนงานของแต่ละสาขา
+
+
+class BranchCreate(BranchSettings, SettingsCreate):
+    permission_required = "servicedesk.add_branch"
+    form_class = BranchForm
+
+
+class BranchUpdate(BranchSettings, SettingsUpdate):
+    permission_required = "servicedesk.change_branch"
+    form_class = BranchForm
+
+
+class BranchDelete(BranchSettings, SettingsDelete):
+    permission_required = "servicedesk.delete_branch"
+
+
+# ---- หมวดปัญหา ----
+class CategorySettings:
+    model = Category
+    title = "หมวดปัญหา"
+    list_url_name = "servicedesk:category_list"
+
+
+class CategoryList(CategorySettings, SettingsMixin, ListView):
+    permission_required = "servicedesk.view_category"
+    template_name = "servicedesk/settings_category_list.html"
+
+    def get_queryset(self):
+        return Category.objects.annotate(ticket_count=Count("tickets"))
+
+
+class CategoryCreate(CategorySettings, SettingsCreate):
+    permission_required = "servicedesk.add_category"
+    form_class = CategoryForm
+
+
+class CategoryUpdate(CategorySettings, SettingsUpdate):
+    permission_required = "servicedesk.change_category"
+    form_class = CategoryForm
+
+
+class CategoryDelete(CategorySettings, SettingsDelete):
+    permission_required = "servicedesk.delete_category"

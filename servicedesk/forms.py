@@ -3,7 +3,7 @@ from datetime import datetime
 
 from django import forms
 
-from .models import Ticket
+from .models import Branch, Category, Ticket
 
 
 class TicketForm(forms.ModelForm):
@@ -31,3 +31,27 @@ class TicketForm(forms.ModelForm):
         if d and o and cd and ct and datetime.combine(cd, ct) < datetime.combine(d, o):
             self.add_error("closed_at", "วันที่และเวลาที่ปิดต้องไม่ก่อนวันที่และเวลาที่เปิด")
         return data
+
+
+class BranchForm(forms.ModelForm):
+    """ฟอร์มเพิ่ม/แก้ไขสาขา (หน้าตั้งค่า)"""
+
+    class Meta:
+        model = Branch
+        fields = ["code", "name", "company_name"]
+
+    def clean_code(self):
+        return self.cleaned_data["code"].strip().upper()  # BDSK ตัวพิมพ์ใหญ่เสมอ
+
+
+class CategoryForm(forms.ModelForm):
+    """ฟอร์มเพิ่ม/แก้ไขหมวดปัญหา (หน้าตั้งค่า)"""
+
+    class Meta:
+        model = Category
+        fields = ["name"]
+        labels = {"name": "ชื่อหมวดปัญหา"}
+
+    def clean_name(self):
+        return self.cleaned_data["name"].strip()
+
